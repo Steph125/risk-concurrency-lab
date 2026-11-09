@@ -1,0 +1,51 @@
+{
+  "environment": {
+    "python": "3.13.3",
+    "implementation": "CPython",
+    "gil_enabled": true,
+    "cpu_count": 8,
+    "platform": "Windows-11"
+  },
+  "cpu_bound": {
+    "task": "VaR Monte-Carlo, 4 × 500 000 scénarios",
+    "workers": 4,
+    "results": {
+      "sequential": {
+        "seconds": 5.38,
+        "var_99_eur": 10707.97,
+        "speedup": 1.0
+      },
+      "threads": {
+        "seconds": 6.007,
+        "var_99_eur": 10707.97,
+        "speedup": 0.9
+      },
+      "processes": {
+        "seconds": 3.0,
+        "var_99_eur": 10707.97,
+        "speedup": 1.79
+      }
+    }
+  },
+  "io_bound": {
+    "task": "20 cotations, latence simulée 0.2 s",
+    "workers": 10,
+    "results": {
+      "sequential": {
+        "seconds": 4.514,
+        "quotes": 20,
+        "speedup": 1.0
+      },
+      "threads": {
+        "seconds": 0.604,
+        "quotes": 20,
+        "speedup": 7.47
+      },
+      "asyncio": {
+        "seconds": 0.63,
+        "quotes": 20,
+        "speedup": 7.17
+      }
+    }
+  }
+}

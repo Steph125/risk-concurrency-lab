@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Risk Concurrency Lab</title>
+  <meta name="description" content="Comparez la vitesse de quatre méthodes d'exécution sur un calcul de risque et sur la récupération de cours de marché.">
+  <meta name="theme-color" content="#0b1a33">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+  <script>
+    // Appliqué avant l'affichage pour éviter un flash de la mauvaise couleur.
+    try { const t = localStorage.getItem("rcl-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#contenu">Aller au contenu</a>
+
+  <div class="app">
+    <!-- Menu : barre latérale sur ordinateur, barre du haut repliable sur téléphone -->
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="/" data-link>
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="#f5a524"/>
+          <rect x="7" y="8" width="18" height="4" rx="2" fill="#0b1a33"/>
+          <rect x="7" y="14.5" width="12" height="4" rx="2" fill="#0b1a33" opacity=".7"/>
+          <rect x="7" y="21" width="7" height="4" rx="2" fill="#0b1a33" opacity=".45"/>
+        </svg>
+        <span>Risk Concurrency Lab</span>
+      </a>
+      <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="sidebar-panel">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <span class="label">Menu</span>
+      </button>
+
+      <div class="sidebar-panel" id="sidebar-panel">
+        <nav class="nav" aria-label="Pages">
+          <a href="/" data-link data-nav="accueil">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Accueil</a>
+          <a href="/calcul" data-link data-nav="calcul">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18"/><path d="M6 17v-6"/><path d="M12 17V5"/><path d="M18 17v-3"/></svg>Calcul du risque</a>
+          <a href="/cours" data-link data-nav="cours">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>Récupération des cours</a>
+          <a href="/historique" data-link data-nav="historique">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Historique</a>
+          <a href="/references" data-link data-nav="references">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Résultats de référence</a>
+          <a href="/activite" data-link data-nav="activite">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Suivi de l'activité</a>
+          <a href="/aide" data-link data-nav="aide">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17.5h.01"/></svg>Aide</a>
+        </nav>
+
+        <div class="sidebar-foot">
+          <div class="server" aria-live="polite">
+            <p class="server-title">Serveur</p>
+            <p class="server-line" id="server-line">Connexion…</p>
+            <p class="server-mode" id="server-mode"></p>
+          </div>
+          <button class="theme-btn" id="theme-toggle" type="button">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+            <span id="theme-label">Mode nuit</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main id="contenu" tabindex="-1">
+
+      <!-- ===================== ACCUEIL ===================== -->
+      <section class="page" data-page="accueil" data-title="Accueil">
+        <div class="hero">
+          <div class="hero-main">
+            <p class="eyebrow on-dark">Laboratoire de performance</p>
+            <h1 tabindex="-1">Mesurez la vitesse de vos opérations de risque</h1>
+            <p class="lede">Comparez quatre méthodes d'exécution sur deux opérations courantes : le calcul de la perte maximale d'un portefeuille et la récupération de cours de marché.</p>
+            <div class="hero-actions">
+              <a class="btn primary" href="/calcul" data-link>Lancer un calcul</a>
+              <a class="btn outline-light" href="/cours" data-link>Récupérer des cours</a>
+            </div>
+          </div>
+          <!-- Rempli par app.js avec un vrai résultat de référence ; affiché sur les écrans larges. -->
+          <aside class="hero-aside" id="hero-aside" aria-label="Exemple de résultat de référence"></aside>
+        </div>
+
+        <h2 class="section-title">Que voulez-vous faire ?</h2>
+        <div class="tiles">
+          <a class="tile" href="/calcul" data-link>
+            <span class="tile-icon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18"/><path d="M6 17v-6"/><path d="M12 17V5"/><path d="M18 17v-3"/></svg></span>
+            <span class="tile-title">Calcul du risque</span>
+            <span class="tile-text">Calculer la perte maximale d'un portefeuille et comparer la durée des méthodes.</span>
+            <span class="tile-go">Ouvrir</span>
+          </a>
+          <a class="tile" href="/cours" data-link>
+            <span class="tile-icon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg></span>
+            <span class="tile-title">Récupération des cours</span>
+            <span class="tile-text">Récupérer des cours auprès d'un fournisseur lent, avec ou sans incidents.</span>
+            <span class="tile-go">Ouvrir</span>
+          </a>
+          <a class="tile" href="/historique" data-link>
+            <span class="tile-icon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            <span class="tile-title">Historique</span>
+            <span class="tile-text">Retrouver vos mesures et les exporter vers Excel.</span>
+            <span class="tile-go">Ouvrir</span>
+          </a>
+          <a class="tile" href="/references" data-link>
+            <span class="tile-icon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg></span>
+            <span class="tile-title">Résultats de référence</span>
+            <span class="tile-text">Consulter les mesures enregistrées sur d'autres machines.</span>
+            <span class="tile-go">Ouvrir</span>
+          </a>
+          <a class="tile" href="/activite" data-link>
+            <span class="tile-icon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></span>
+            <span class="tile-title">Suivi de l'activité</span>
+            <span class="tile-text">Voir le nombre de demandes, de relances et les temps de réponse.</span>
+            <span class="tile-go">Ouvrir</span>
+          </a>
+          <a class="tile" href="/aide" data-link>
+            <span class="tile-icon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17.5h.01"/></svg></span>
+            <span class="tile-title">Aide</span>
+            <span class="tile-text">Comprendre les méthodes et choisir la bonne selon l'opération.</span>
+            <span class="tile-go">Ouvrir</span>
+          </a>
+        </div>
+
+        <h2 class="section-title">Les quatre méthodes comparées</h2>
+        <div class="methods">
+          <div class="method"><p class="method-name"><span class="m-dot"></span>En série</p><p>Une tâche après l'autre. C'est la référence.</p></div>
+          <div class="method"><p class="method-name"><span class="m-dot"></span>Multi-tâches</p><p>Plusieurs tâches en même temps dans un seul moteur.</p></div>
+          <div class="method"><p class="method-name"><span class="m-dot"></span>Multi-moteurs</p><p>Chaque tâche dans son propre moteur, sur son propre cœur.</p></div>
+          <div class="method"><p class="method-name"><span class="m-dot"></span>En alternance</p><p>Un seul moteur qui avance sur une tâche pendant qu'une autre attend.</p></div>
+        </div>
+      </section>
+
+      <!-- ===================== CALCUL DU RISQUE ===================== -->
+      <section class="page" data-page="calcul" data-title="Calcul du risque" hidden>
+        <header class="page-head">
+          <p class="eyebrow">Calcul intensif</p>
+          <h1 tabindex="-1">Calcul du risque</h1>
+          <p class="lede">Calculez la perte maximale probable (VaR) d'un portefeuille de 1 000 000 € — euro-dollar, or et Dow Jones — avec trois méthodes, puis comparez leur durée.</p>
+        </header>
+        <div class="work">
+          <form class="card params" id="cpu-form" novalidate>
+            <h2 class="card-title">Réglages</h2>
+            <div class="field">
+              <label for="cpu-paths">Scénarios par lot <output for="cpu-paths" data-format="int"></output></label>
+              <input id="cpu-paths" name="paths" type="range" min="10000" max="200000" step="10000" value="100000">
+              <p class="help">Journées de marché simulées dans chaque lot.</p>
+            </div>
+            <div class="field">
+              <label for="cpu-chunks">Nombre de lots <output for="cpu-chunks"></output></label>
+              <input id="cpu-chunks" name="chunks" type="range" min="1" max="8" step="1" value="4">
+              <p class="help">Le travail est découpé en lots, répartis entre les tâches.</p>
+            </div>
+            <div class="field">
+              <label for="cpu-workers">Tâches simultanées <output for="cpu-workers"></output></label>
+              <input id="cpu-workers" name="workers" type="range" min="1" max="8" step="1" value="4">
+              <p class="help">Combien de tâches travaillent en même temps.</p>
+            </div>
+            <div class="field">
+              <label for="cpu-level">Niveau de confiance</label>
+              <select id="cpu-level" name="level">
+                <option value="0.9">90 %</option>
+                <option value="0.95">95 %</option>
+                <option value="0.99" selected>99 %</option>
+                <option value="0.999">99,9 %</option>
+              </select>
+              <p class="help">À 99 %, la perte n'est dépassée qu'un jour sur cent.</p>
+            </div>
+            <div class="field">
+              <label for="cpu-repeat">Nombre d'essais</label>
+              <select id="cpu-repeat" name="repeat">
+                <option value="1">1 essai — rapide</option>
+                <option value="3" selected>3 essais — fiable</option>
+                <option value="5">5 essais — très fiable</option>
+              </select>
+              <p class="help">Chaque méthode est mesurée plusieurs fois ; on garde la durée du milieu. Plus d'essais = résultat plus sûr, mais plus long.</p>
+            </div>
+            <p class="estimate" id="cpu-estimate" aria-live="polite"></p>
+            <button class="btn primary block" type="submit"><span class="spinner" aria-hidden="true"></span><span class="label">Lancer le calcul</span></button>
+          </form>
+          <div class="card result-card">
+            <h2 class="card-title">Résultat</h2>
+            <div class="result" id="cpu-result" aria-live="polite">
+              <div class="empty-state">
+                <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18"/><path d="M6 17v-6"/><path d="M12 17V5"/><path d="M18 17v-3"/></svg>
+                <p>Choisissez vos réglages puis lancez le calcul. Le résultat s'affichera ici.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== RÉCUPÉRATION DES COURS ===================== -->
+      <section class="page" data-page="cours" data-title="Récupération des cours" hidden>
+        <header class="page-head">
+          <p class="eyebrow">Attente de données</p>
+          <h1 tabindex="-1">Récupération des cours</h1>
+          <p class="lede">Demandez des cours de marché à un fournisseur qui met du temps à répondre, avec trois méthodes, puis comparez leur durée.</p>
+        </header>
+        <div class="work">
+          <form class="card params" id="io-form" novalidate>
+            <h2 class="card-title">Réglages</h2>
+            <div class="field">
+              <label for="io-symbols">Nombre de cours <output for="io-symbols"></output></label>
+              <input id="io-symbols" name="symbols" type="range" min="1" max="20" step="1" value="10">
+              <p class="help">Instruments demandés : devises, or, indices, cryptomonnaies.</p>
+            </div>
+            <div class="field">
+              <label for="io-workers">Demandes simultanées <output for="io-workers"></output></label>
+              <input id="io-workers" name="workers" type="range" min="1" max="20" step="1" value="10">
+              <p class="help">Combien de demandes partent en même temps.</p>
+            </div>
+            <div class="field">
+              <label for="io-latency">Temps de réponse du fournisseur <output for="io-latency" data-format="seconds"></output></label>
+              <input id="io-latency" name="latency" type="range" min="0.05" max="1" step="0.05" value="0.2">
+              <p class="help">Délai d'attente pour chaque cours.</p>
+            </div>
+            <div class="field check">
+              <input id="io-flaky" name="flaky" type="checkbox" checked>
+              <label for="io-flaky">Simuler des incidents de connexion</label>
+              <p class="help">Deux cours échouent une fois, puis sont relancés automatiquement.</p>
+            </div>
+            <p class="estimate" id="io-estimate" aria-live="polite"></p>
+            <button class="btn primary block" type="submit"><span class="spinner" aria-hidden="true"></span><span class="label">Lancer la récupération</span></button>
+          </form>
+          <div class="card result-card">
+            <h2 class="card-title">Résultat</h2>
+            <div class="result" id="io-result" aria-live="polite">
+              <div class="empty-state">
+                <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+                <p>Choisissez vos réglages puis lancez la récupération. Le résultat s'affichera ici.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== HISTORIQUE ===================== -->
+      <section class="page" data-page="historique" data-title="Historique" hidden>
+        <header class="page-head with-actions">
+          <div>
+            <p class="eyebrow">Vos mesures</p>
+            <h1 tabindex="-1">Historique</h1>
+            <p class="lede">Les 30 dernières mesures faites depuis ce navigateur.</p>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn outline" id="export-csv">Exporter pour Excel</button>
+            <button type="button" class="btn outline" id="export-json">Télécharger la sauvegarde</button>
+            <button type="button" class="btn ghost-danger" id="clear-history">Effacer</button>
+          </div>
+        </header>
+        <div class="card table-card">
+          <div class="table-scroll">
+            <table class="data stack-wide">
+              <thead>
+                <tr><th scope="col">Date</th><th scope="col">Opération</th><th scope="col">Réglages</th><th scope="col" class="num">Durée en série</th><th scope="col">Recommandée</th><th scope="col" class="num">Gain</th></tr>
+              </thead>
+              <tbody id="history-body"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="history-empty">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <p>Aucune mesure pour l'instant.</p>
+            <div class="actions center">
+              <a class="btn primary" href="/calcul" data-link>Lancer un calcul</a>
+              <a class="btn outline" href="/cours" data-link>Récupérer des cours</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== RÉFÉRENCES ===================== -->
+      <section class="page" data-page="references" data-title="Résultats de référence" hidden>
+        <header class="page-head">
+          <p class="eyebrow">Mesures enregistrées</p>
+          <h1 tabindex="-1">Résultats de référence</h1>
+          <p class="lede">Mesures complètes faites sur d'autres machines. Chaque machine a sa propre puissance : comparez les gains, pas les durées.</p>
+        </header>
+        <div class="ref-grid" id="reference-list"><p class="muted">Chargement…</p></div>
+      </section>
+
+      <!-- ===================== SUIVI DE L'ACTIVITÉ ===================== -->
+      <section class="page" data-page="activite" data-title="Suivi de l'activité" hidden>
+        <header class="page-head with-actions">
+          <div>
+            <p class="eyebrow">Depuis le démarrage du serveur</p>
+            <h1 tabindex="-1">Suivi de l'activité</h1>
+            <p class="lede">Chaque demande de cours est comptée, chronométrée, et relancée automatiquement en cas d'incident.</p>
+          </div>
+          <div class="actions"><button type="button" class="btn outline" id="refresh-activity">Actualiser</button></div>
+        </header>
+        <div class="stats wide" id="activity-stats"></div>
+        <div class="card table-card">
+          <div class="table-scroll">
+            <table class="data stack">
+              <thead><tr><th scope="col">Opération</th><th scope="col" class="num">Exécutions</th><th scope="col" class="num">Temps moyen</th><th scope="col" class="num">Temps maximum</th></tr></thead>
+              <tbody id="activity-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <p class="note">Les exécutions comptent aussi les essais qui ont échoué : la différence avec le nombre de demandes donne le nombre de relances.</p>
+      </section>
+
+      <!-- ===================== AIDE ===================== -->
+      <section class="page" data-page="aide" data-title="Aide" hidden>
+        <header class="page-head">
+          <p class="eyebrow">Questions fréquentes</p>
+          <h1 tabindex="-1">Aide</h1>
+          <p class="lede">Tout ce qu'il faut savoir pour lire les résultats et choisir la bonne méthode.</p>
+        </header>
+
+        <div class="card reco-table">
+          <h2 class="card-title">Quelle méthode choisir ?</h2>
+          <div class="table-scroll">
+            <table class="data stack">
+              <thead><tr><th scope="col">Votre opération</th><th scope="col">Exemple</th><th scope="col">Méthode recommandée</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Calcul intensif</th><td data-label="Exemple">Calcul de risque, simulation, pricing</td><td data-label="Méthode"><span class="pill">Multi-moteurs</span></td></tr>
+                <tr><th scope="row">Attente de données</th><td data-label="Exemple">Cours de marché, base de données, fichiers</td><td data-label="Méthode"><span><span class="pill">Multi-tâches</span> ou <span class="pill">En alternance</span></span></td></tr>
+                <tr><th scope="row">Très peu de travail</th><td data-label="Exemple">Quelques milliers de calculs</td><td data-label="Méthode"><span class="pill">En série</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="faq">
+          <details class="card" open>
+            <summary>Que mesure cette application ?</summary>
+            <p>La durée d'une même opération réalisée de plusieurs façons. Le résultat ne change jamais d'une méthode à l'autre : seule la durée change. Le <strong>gain</strong> indique combien de fois une méthode va plus vite que la méthode en série (×2 = deux fois plus vite).</p>
+          </details>
+          <details class="card">
+            <summary>Les quatre méthodes en une phrase</summary>
+            <ul class="plain">
+              <li><strong>En série</strong> : une tâche après l'autre. C'est la référence.</li>
+              <li><strong>Multi-tâches</strong> : plusieurs tâches en même temps dans un seul moteur.</li>
+              <li><strong>Multi-moteurs</strong> : chaque tâche dans son propre moteur, sur son propre cœur.</li>
+              <li><strong>En alternance</strong> : un seul moteur qui avance sur une tâche pendant qu'une autre attend.</li>
+            </ul>
+          </details>
+          <details class="card">
+            <summary>Pourquoi le multi-tâches n'accélère-t-il pas le calcul ?</summary>
+            <p>Dans un même moteur, Python ne calcule qu'une chose à la fois : c'est son mode standard. Plusieurs tâches de calcul s'y relaient donc au lieu de travailler ensemble. Imaginez une cuisine avec plusieurs cuisiniers, mais un seul couteau.</p>
+            <p>Pour calculer vraiment en parallèle, il faut plusieurs moteurs (méthode <strong>Multi-moteurs</strong>), ou une version de Python sans ce verrou, présentée dans les résultats de référence.</p>
+          </details>
+          <details class="card">
+            <summary>Pourquoi le multi-tâches marche-t-il pour récupérer des cours ?</summary>
+            <p>Pendant qu'une demande attend la réponse du fournisseur, le moteur est libre : une autre demande peut partir. Les attentes se chevauchent, d'où un gain proche du nombre de demandes simultanées.</p>
+          </details>
+          <details class="card">
+            <summary>Pourquoi le multi-moteurs est-il parfois plus lent ?</summary>
+            <p>Démarrer un moteur et lui transmettre le travail prend du temps, surtout sous Windows. Avec peu de scénarios, ce coût dépasse le gain. Augmentez le nombre de scénarios par lot pour voir la différence.</p>
+          </details>
+          <details class="card">
+            <summary>Qu'est-ce que la perte maximale (VaR) ?</summary>
+            <p>La <strong>VaR</strong> (<em>Value at Risk</em>) est la perte qu'un portefeuille ne dépasse que rarement sur une journée. À 99 %, elle n'est dépassée qu'un jour sur cent. Ici, elle est estimée en simulant des centaines de milliers de journées de marché.</p>
+          </details>
+        </div>
+      </section>
+
+      <!-- ===================== PAGE INTROUVABLE ===================== -->
+      <section class="page" data-page="introuvable" data-title="Page introuvable" hidden>
+        <div class="empty-state big">
+          <h1 tabindex="-1">Page introuvable</h1>
+          <p>Cette adresse ne correspond à aucune page.</p>
+          <a class="btn primary" href="/" data-link>Retour à l'accueil</a>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span>Risk Concurrency Lab</span>
+        <a href="/docs">Accès développeur</a>
+      </footer>
+    </main>
+  </div>
+
+  <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+</body>
+</html>
