@@ -87,3 +87,16 @@ def test_openapi_documents_inputs_and_outputs():
     assert set(params) == {"paths", "chunks", "workers", "level", "repeat"}
     assert all(p.get("description") for p in params.values())
     assert "CpuBenchmark" in schema["components"]["schemas"]
+
+
+def test_cpu_endpoint_without_processes(monkeypatch):
+    from lab import benchmark
+
+    def no_processes(*args, **kwargs):
+        raise OSError(38, "Function not implemented")
+
+    monkeypatch.setattr(benchmark, "run_processes", no_processes)
+    response = client.get("/api/benchmark/cpu", params={"paths": 10_000, "chunks": 2, "workers": 2})
+    assert response.status_code == 200
+    data = response.json()
+    assert "processes" not in data["results"] and "processes" in data["unavailable"]

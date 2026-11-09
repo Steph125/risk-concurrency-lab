@@ -41,6 +41,9 @@ class CpuBenchmark(BaseModel):
     params: CpuParams = Field(description="Paramètres réellement utilisés")
     results: dict[Literal["sequential", "threads", "processes"], CpuResult]
     fastest: str = Field(description="Stratégie la plus rapide")
+    unavailable: dict[str, str] = Field(default_factory=dict,
+                                        description="Stratégies non mesurées et pourquoi (ex. processus "
+                                                    "interdits sur un hébergement serverless)")
     interpretation: list[str] = Field(description="Ce que montrent les chiffres, en quelques phrases")
 
 

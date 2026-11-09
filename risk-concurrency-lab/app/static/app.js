@@ -268,7 +268,7 @@ function readCpu(data) {
   if (parallel === 1) {
     notes.push("Avec un seul lot ou une seule tâche, aucune méthode ne peut aller plus vite : elles font toutes le même travail l'une après l'autre.");
   } else {
-    const t = r.threads.speedup, m = r.processes.speedup;
+    const t = r.threads.speedup, m = r.processes ? r.processes.speedup : null;
     if (env.gil_enabled !== false) {
       notes.push(t < NOISE
         ? `Le multi-tâches ne fait pas gagner de temps (${fmtGain(t)}) : en mode standard, un moteur ne calcule qu'une chose à la fois.`
@@ -278,9 +278,13 @@ function readCpu(data) {
         ? `En mode sans verrou, le multi-tâches accélère vraiment le calcul : ${fmtTimes(t)} plus vite.`
         : "Même en mode sans verrou, le multi-tâches ne gagne rien ici : il y a trop peu de travail par lot.");
     }
-    notes.push(m >= NOISE
-      ? `Le multi-moteurs va ${fmtTimes(m)} plus vite : chaque moteur calcule sur son propre cœur.`
-      : `Le multi-moteurs est plus lent ici (${fmtGain(m)}) : démarrer les moteurs coûte plus que le calcul lui-même. Augmentez le nombre de scénarios.`);
+    if (m === null) {
+      notes.push("Le multi-moteurs n'a pas pu être mesuré : cet hébergement ne permet pas de lancer plusieurs moteurs. Lancez l'application sur un PC ou un serveur classique pour le comparer.");
+    } else {
+      notes.push(m >= NOISE
+        ? `Le multi-moteurs va ${fmtTimes(m)} plus vite : chaque moteur calcule sur son propre cœur.`
+        : `Le multi-moteurs est plus lent ici (${fmtGain(m)}) : démarrer les moteurs coûte plus que le calcul lui-même. Augmentez le nombre de scénarios.`);
+    }
     const cores = env.cpu_count || 1;
     notes.push(`Gain maximum possible avec ces réglages : ×${Math.min(parallel, cores)} (${p.chunks} lots, ${p.workers} tâches, ${cores} cœurs).`);
   }
@@ -403,6 +407,10 @@ function renderLive(kind, data) {
     statTiles(kind, data, rec),
     el("div", { class: "reco", role: "note" }, icon(ICON_STAR),
       el("div", {}, el("strong", { text: "Recommandation" }), recommendation(kind, data, rec))),
+    Object.keys(data.unavailable || {}).length
+      ? el("div", { class: "alert info", role: "note",
+          text: `Non mesuré sur ce serveur : ${Object.keys(data.unavailable).map(method).join(", ")}. L'hébergement ne permet pas de lancer plusieurs moteurs.` })
+      : null,
     el("p", { class: "chart-caption", text: "Durée par méthode (plus court = mieux)" }),
     ...barChart(kind, data, rec),
     el("p", { class: "notes-title", text: "À retenir" }),

@@ -31,3 +31,16 @@ def test_interpretation_mentions_the_gil():
            "processes": {"speedup": 1.65, "var_eur": 10.0}}
     notes = " ".join(benchmark.explain_cpu(res, params, env))
     assert "GIL" in notes and "×2" in notes and "même VaR" in notes
+
+
+def test_cpu_benchmark_survives_hosts_without_processes(monkeypatch):
+    # Vercel / AWS Lambda : pas de /dev/shm, ProcessPoolExecutor lève OSError [Errno 38].
+    def no_processes(*args, **kwargs):
+        raise OSError(38, "Function not implemented")
+
+    monkeypatch.setattr(benchmark, "run_processes", no_processes)
+    block = benchmark.bench_cpu(paths=2_000, chunks=2, workers=2, repeat=2)
+    assert set(block["results"]) == {"sequential", "threads"}
+    assert "processes" in block["unavailable"]
+    assert block["fastest"] in {"sequential", "threads"}
+    assert any("Processus : non mesurés" in n for n in block["interpretation"])

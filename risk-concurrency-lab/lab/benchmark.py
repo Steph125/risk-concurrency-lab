@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from concurrent.futures.process import BrokenProcessPool
 import os
 import platform
 import statistics
@@ -17,6 +18,9 @@ from pathlib import Path
 
 from . import workloads as w
 from .runners import run_asyncio, run_processes, run_sequential, run_threads
+
+# Erreurs levées quand la plateforme ne permet pas de lancer des processus.
+PROCESS_ERRORS = (OSError, NotImplementedError, ImportError, PermissionError, BrokenProcessPool)
 
 STRATEGY_LABELS = {
     "sequential": "Séquentiel",
@@ -74,9 +78,22 @@ def bench_cpu(paths: int, chunks: int = 4, workers: int = 4, level: float = 0.99
     ]
     times: dict[str, list[float]] = {name: [] for name, _ in runs}
     out = {}
+    unavailable: dict[str, str] = {}
     for _ in range(repeat):
         for name, run in runs:  # à tour de rôle, pour répartir les variations de la machine
-            seconds, parts = _time(run)
+            if name in unavailable:
+                continue
+            try:
+                seconds, parts = _time(run)
+            except PROCESS_ERRORS as exc:
+                # Certains hébergeurs serverless (Vercel, AWS Lambda) n'ont pas la mémoire
+                # partagée (/dev/shm) dont ProcessPoolExecutor a besoin : on mesure le reste
+                # au lieu de faire échouer toute la requête.
+                if name != "processes":
+                    raise
+                unavailable[name] = f"Processus impossibles à lancer sur cet hébergement ({type(exc).__name__}: {exc})"
+                del times[name]
+                continue
             times[name].append(seconds)
             if name not in out:
                 losses = [x for part in parts for x in part]
@@ -92,6 +109,7 @@ def bench_cpu(paths: int, chunks: int = 4, workers: int = 4, level: float = 0.99
         "params": params,
         "results": out,
         "fastest": fastest,
+        "unavailable": unavailable,
         "interpretation": explain_cpu(out, params, environment()),
     }
 
@@ -105,7 +123,8 @@ def explain_cpu(res: dict, params: dict, env: dict) -> list[str]:
         notes.append("Avec un seul bloc ou un seul worker, rien ne tourne en parallèle : "
                      "les trois stratégies font le même travail l'une après l'autre.")
     else:
-        t, p = res["threads"]["speedup"], res["processes"]["speedup"]
+        t = res["threads"]["speedup"]
+        p = res["processes"]["speedup"] if "processes" in res else None
         if env.get("gil_enabled", True):
             if t < 1.15:
                 notes.append(f"Threads ×{_fr(t)} : avec le GIL, un seul thread exécute du Python à la fois, "
@@ -116,7 +135,9 @@ def explain_cpu(res: dict, params: dict, env: dict) -> list[str]:
             notes.append(f"Threads ×{_fr(t)} : sans GIL, les threads calculent vraiment en parallèle.")
         else:
             notes.append(f"Threads ×{_fr(t)} : même sans GIL, pas de gain ici (trop peu de travail par bloc).")
-        if p >= 1.15:
+        if p is None:
+            notes.append("Processus : non mesurés, cet hébergement ne permet pas d'en lancer.")
+        elif p >= 1.15:
             notes.append(f"Processus ×{_fr(p)} : chaque processus a son propre GIL, "
                          "le calcul est réparti sur plusieurs cœurs.")
         else:
@@ -128,7 +149,7 @@ def explain_cpu(res: dict, params: dict, env: dict) -> list[str]:
                      f"et {cores} cœurs).")
     vars_ = {v["var_eur"] for v in res.values()}
     if len(vars_) == 1:
-        notes.append(f"Les trois stratégies trouvent la même VaR ({_fr(vars_.pop())} €) : "
+        notes.append(f"Toutes les stratégies trouvent la même VaR ({_fr(vars_.pop())} €) : "
                      "chaque bloc a sa propre graine aléatoire.")
     return notes
 

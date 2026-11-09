@@ -15,7 +15,7 @@ from lab import workloads as w
 from lab.benchmark import bench_cpu, bench_io, environment
 from lab.decorators import TIMINGS
 
-from .schemas import (CpuBenchmark, DecoratorsState, Environment, Health, IoBenchmark,
+from app.schemas import (CpuBenchmark, DecoratorsState, Environment, Health, IoBenchmark,
                       ReferenceReport, Timing)
 
 ROOT = Path(__file__).resolve().parent.parent

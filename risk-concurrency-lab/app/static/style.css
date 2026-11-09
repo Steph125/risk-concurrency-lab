@@ -306,6 +306,7 @@ main { min-width: 0; display: flex; flex-direction: column; padding: 2.5rem var(
 
 .alert { border-radius: 10px; padding: 0.75rem 0.875rem; font-size: 0.9375rem; }
 .alert.error { background: var(--danger-wash); color: var(--text); border: 1px solid var(--danger); }
+.alert.info { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--baseline); margin-bottom: 1.375rem; font-size: 0.875rem; }
 
 /* --- Tableaux ----------------------------------------------------------------------- */
 

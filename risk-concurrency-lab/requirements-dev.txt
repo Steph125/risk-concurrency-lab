@@ -1,0 +1,5 @@
+# Développement : le site + les tests + le graphique de python -m lab.benchmark
+-r requirements.txt
+matplotlib>=3.8
+pytest>=8
+httpx>=0.27

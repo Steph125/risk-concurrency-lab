@@ -92,7 +92,7 @@ tests/              22 tests : décorateurs, stratégies, ligne de commande, API
 
 ```bash
 python -m venv .venv && source .venv/bin/activate   # Windows : .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # site + tests + graphique
 
 pytest -q                          # 22 tests
 python -m lab.benchmark            # mesures complètes, écrit results/
@@ -168,7 +168,24 @@ curl "http://localhost:8000/api/benchmark/io?symbols=6&workers=6&latency=0.1"
 
 ### Déployer
 
-Le `Dockerfile` fonctionne tel quel sur Render, Railway ou Hugging Face Spaces (port 7860 par défaut, ou la variable `PORT` fournie par l'hébergeur). Les offres gratuites n'allouent souvent qu'une fraction de cœur : les mesures CPU en ligne y montrent le principe, pas la vraie accélération. Les chiffres de référence sont ceux du tableau ci-dessus.
+**Vercel** (offre gratuite Hobby). Vercel détecte FastAPI tout seul : `app/main.py` définit `app`, et `requirements.txt` ne contient que ce dont le site a besoin. Depuis ce dossier :
+
+```bash
+npx vercel@latest login     # une seule fois, ouvre le navigateur
+npx vercel@latest           # première fois : crée le projet, donne une URL d'aperçu
+npx vercel@latest --prod    # met en ligne l'URL définitive
+```
+
+Ou par Git : poussez ce dossier sur GitHub, puis importez le dépôt sur vercel.com/new (si le dépôt contient un dossier parent, réglez *Root Directory* sur ce dossier). Chaque `git push` redéploie.
+
+Ce qui change en ligne :
+
+- **1 cœur** par fonction sur l'offre Hobby : les gains de calcul n'y apparaissent pas, les mesures montrent le principe. Les chiffres de référence restent ceux de `results/`.
+- **Multi-moteurs** : si l'hébergement interdit de lancer des processus (pas de mémoire partagée `/dev/shm`, comme sur AWS Lambda), la mesure se fait sans eux et l'interface l'indique, au lieu d'échouer.
+- **Suivi de l'activité** : les compteurs vivent en mémoire, par instance ; ils repartent de zéro quand Vercel arrête ou démarre une instance.
+- **Durée maximale** d'une requête : 300 s sur Hobby, largement au-dessus des réglages maximum de l'interface.
+
+**Docker** : le `Dockerfile` fonctionne tel quel sur Render, Railway ou Hugging Face Spaces (port 7860 par défaut, ou la variable `PORT` fournie par l'hébergeur). Un vrai serveur y donne accès à plusieurs cœurs et aux processus.
 
 ## Limites
 

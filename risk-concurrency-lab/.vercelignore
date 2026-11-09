@@ -1,0 +1,10 @@
+# Fichiers inutiles au site en ligne : non envoyés à Vercel.
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+ci-results/
+tests/
+.github/
+Dockerfile
+.dockerignore

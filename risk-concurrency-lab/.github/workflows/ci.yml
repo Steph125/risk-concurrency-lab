@@ -11,6 +11,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements-dev.txt
       - run: pytest -q
       - run: python -m lab.benchmark --quick --out ci-results
